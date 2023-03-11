@@ -1,17 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:io';
+
 import 'package:restaurant_api/provider/restaurantDetail_provider.dart';
-
-import '../models/restaurant.dart';
 import '../models/restaurantDetail.dart';
+import '../models/favorite.dart';
+import '../provider/db_provider.dart';
+import '../services/notify_helper.dart';
+import '../main.dart';
 
-class DetailPage extends StatelessWidget {
+class DetailPage extends StatefulWidget {
   static const routeName = '/detailPage';
+
+  @override
+  State<DetailPage> createState() => _DetailPageState();
+}
+
+class _DetailPageState extends State<DetailPage> {
+  bool isFavorite = false;
+  var notificationHelper = NotificationHelper();
+
+  @override
+  void initState() {
+    notificationHelper.initNotifications(flutterLocalNotificationsPlugin);
+    notificationHelper.configureDidReceiveLocalNotificationSubject(context, '');
+    notificationHelper.configureSelectNotificationSubject(context, '');
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    selectNotificationSubject.close();
+    didReceiveLocalNotificationSubject.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context).size;
-    Icon iconStar = Icon(Icons.star);
+
+    String id = ModalRoute.of(context)?.settings.arguments as String;
+    final dbProv = Provider.of<DBProvider>(context, listen: false).favorite;
+
+    for (int i = 0; i < dbProv.length; i++) {
+      if (dbProv[i].restaurantId == id) {
+        setState(() {
+          isFavorite = true;
+        });
+      }
+    }
     return Consumer<RestaurantDetailProvider>(
       builder: (context, value, child) {
         if (value.state == ResultState.loading) {
@@ -24,6 +63,36 @@ class DetailPage extends StatelessWidget {
           return Scaffold(
             appBar: AppBar(
               title: Text(value.result.restaurant.name),
+              actions: [
+                IconButton(
+                    onPressed: () {
+                      if (isFavorite == false) {
+                        setState(() {
+                          isFavorite = true;
+                        });
+                        final fav = Favorite(
+                            name: value.result.restaurant.name,
+                            restaurantId: value.result.restaurant.id,
+                            city: value.result.restaurant.city,
+                            rating: value.result.restaurant.rating,
+                            pictureId: value.result.restaurant.pictureId);
+
+                        Provider.of<DBProvider>(context, listen: false)
+                            .addFavorite(fav);
+                      } else {
+                        setState(() {
+                          isFavorite = false;
+                        });
+                        Provider.of<DBProvider>(context, listen: false)
+                            .delete(id);
+                      }
+                    },
+                    icon: isFavorite == false
+                        ? const Icon(
+                            Icons.favorite_outline,
+                          )
+                        : const Icon(Icons.favorite, color: Colors.red))
+              ],
             ),
             body: Column(
               children: <Widget>[
@@ -53,7 +122,7 @@ class DetailPage extends StatelessWidget {
                   child: Text(
                     value.result.restaurant.description,
                     textAlign: TextAlign.justify,
-                    maxLines: 7,
+                    maxLines: 12,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

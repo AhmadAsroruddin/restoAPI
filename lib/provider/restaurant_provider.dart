@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import "package:http/http.dart" as http;
 
 import '../api/api_service.dart';
 import '../models/restaurant.dart';
@@ -15,7 +16,8 @@ class RestaurantProvider extends ChangeNotifier {
     _fetchAllRestaurant();
   }
 
-  late Welcome _result;
+  Welcome _result =
+      Welcome(error: false, message: 'message', count: 1, restaurants: []);
   late ResultState _state;
   String _message = '';
 
@@ -27,7 +29,7 @@ class RestaurantProvider extends ChangeNotifier {
     try {
       _state = ResultState.loading;
       notifyListeners();
-      final restaurant = await apiService.topHeadlines();
+      final restaurant = await apiService.topHeadlines(http.Client());
       if (restaurant.restaurants.isEmpty) {
         _state = ResultState.noData;
         notifyListeners();

@@ -10,9 +10,9 @@ import 'api_exceptions.dart';
 
 class ApiService {
   Duration timeOut = Duration(seconds: 35);
-  Future<Welcome> topHeadlines() async {
+  Future<Welcome> topHeadlines(http.Client client) async {
     try {
-      final response = await http
+      final response = await client
           .get(
             Uri.parse("https://restaurant-api.dicoding.dev/list"),
           )
@@ -28,9 +28,9 @@ class ApiService {
     }
   }
 
-  Future<RestaurantDetail> restaurantDetail(String id) async {
+  Future<RestaurantDetail> restaurantDetail(String id, http.Client client) async {
     try {
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse(
             "https://restaurant-api.dicoding.dev/detail/$id"),
       );
